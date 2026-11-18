@@ -13,6 +13,7 @@ export const modules: Array<{ name: ModuleName; icon: string; group: string }> =
   { name: "Financeiro", icon: "wallet", group: "Gestão" },
   { name: "Analytics", icon: "chart-no-axes-combined", group: "Gestão" },
   { name: "Equipa", icon: "user-round-cog", group: "Administração" },
+  { name: "Auditoria", icon: "clipboard-list", group: "Administração" },
   { name: "Definições", icon: "settings-2", group: "Administração" }
 ];
 

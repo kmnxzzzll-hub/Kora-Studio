@@ -18,4 +18,5 @@ export type ModuleName =
   | "Financeiro"
   | "Analytics"
   | "Equipa"
-  | "Definições";
+  | "Definições"
+  | "Auditoria";

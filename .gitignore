@@ -5,9 +5,16 @@ venv/
 __pycache__/
 *.py[cod]
 
-# Builds and coverage
+# Local databases
+kora.db
+*.sqlite
+*.sqlite3
+
+# Builds, tests and logs
 dist/
 coverage/
+.pytest_cache/
+.coverage
 *.log
 
 # Local environment and editor files

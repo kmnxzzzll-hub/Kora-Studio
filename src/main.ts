@@ -1,5 +1,7 @@
 import { createIcons, icons } from "lucide";
-import { demoRecords, modules } from "./data";
+import { modules } from "./data";
+import { apiRequest, clearToken, getToken, setToken } from "./api";
+import type { AuditEntry, CurrentUser, DashboardSummary, KoraRecord, RecordPayload, TeamUser } from "./api";
 import type { ModuleName } from "./types";
 import "./styles.css";
 
@@ -111,80 +113,255 @@ function renderHome(): void {
           <article class="price-card"><span class="price-label">SOLUÇÃO PERSONALIZADA</span><h3>CUSTOM</h3><p>Para plataformas, lojas online e operações específicas.</p><ul><li>${icon("check", 15)} Arquitetura à medida</li><li>${icon("check", 15)} Sistemas e automações</li><li>${icon("check", 15)} Plano de evolução</li></ul><a href="#contacto" data-scroll="contacto">Falar com a equipa ${icon("arrow-up-right", 15)}</a></article>
         </div><p class="price-note">Os valores comerciais ainda serão configurados por mercado: EUR, BRL e AOA. Os cartões não constituem uma tabela de preços final.</p></div></section>
 
-        <section class="section-wrap contact-section" id="contacto"><div class="contact-panel"><div class="contact-copy"><div class="eyebrow">O PRÓXIMO PASSO</div><h2>Vamos construir algo<br><em>com impacto.</em></h2><p>Conta-nos o que tens em mente. A KORA AI ajuda-te a transformar a ideia numa solução digital concreta.</p><div class="contact-meta"><span>${icon("globe-2", 16)} Angola · Portugal · Brasil</span><span>${icon("mail", 16)} Contacto por configurar</span></div></div><form id="contact-form" class="contact-form"><label>Nome<input name="name" autocomplete="name" placeholder="O teu nome" required minlength="2" /></label><label>Email<input name="email" type="email" autocomplete="email" placeholder="nome@empresa.com" required /></label><label>Mercado<select name="market" required><option value="">Selecionar mercado</option><option>Angola</option><option>Portugal</option><option>Brasil</option><option>Outro</option></select></label><label>Como podemos ajudar?<textarea name="message" rows="3" placeholder="Descreve brevemente o teu projeto..." required minlength="10"></textarea></label><button class="button button-primary form-submit" type="submit">Preparar pedido ${icon("arrow-up-right", 17)}</button><p class="form-feedback" id="form-feedback" role="status">Demonstração: o envio de emails ainda não está ligado.</p></form></div></section>
+        <section class="section-wrap contact-section" id="contacto"><div class="contact-panel"><div class="contact-copy"><div class="eyebrow">O PRÓXIMO PASSO</div><h2>Vamos construir algo<br><em>com impacto.</em></h2><p>Conta-nos o que tens em mente. A KORA AI ajuda-te a transformar a ideia numa solução digital concreta.</p><div class="contact-meta"><span>${icon("globe-2", 16)} Angola · Portugal · Brasil</span><span>${icon("mail", 16)} Contacto por configurar</span></div></div><form id="contact-form" class="contact-form"><label>Nome<input name="name" autocomplete="name" placeholder="O teu nome" required minlength="2" /></label><label>Email<input name="email" type="email" autocomplete="email" placeholder="nome@empresa.com" required /></label><label>Mercado<select name="market" required><option value="">Selecionar mercado</option><option>Angola</option><option>Portugal</option><option>Brasil</option><option>Outro</option></select></label><label>Como podemos ajudar?<textarea name="message" rows="3" placeholder="Descreve brevemente o teu projecto..." required minlength="10"></textarea></label><label class="consent-check"><input type="checkbox" name="consent" value="true" required /> <span>Autorizo a KORA AI a utilizar estes dados para responder ao meu pedido.</span></label><input type="text" name="website" class="honeypot" tabindex="-1" autocomplete="off" aria-hidden="true" /><button class="button button-primary form-submit" type="submit">Preparar pedido ${icon("arrow-up-right", 17)}</button><p class="form-feedback" id="form-feedback" role="status">Demonstração: o envio de emails ainda não está ligado.</p></form></div></section>
       </main>
       <footer class="site-footer"><div class="section-wrap footer-inner"><a class="brand" href="#/"><span class="brand-mark">K</span><span class="brand-name">KORA<span>AI</span></span></a><span>ESTRATÉGIA · DESIGN · TECNOLOGIA</span><a href="#/login" class="footer-team">Área da equipa ${icon("arrow-up-right", 13)}</a><small>© 2026 KORA AI. Todos os direitos reservados.</small></div></footer>
     </div>`;
   refreshIcons();
 }
 
+function escapeHtml(value: unknown): string {
+  const escapes: Record<string, string> = {
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  };
+  return String(value ?? "").replace(/[&<>"']/g, (char) => escapes[char] ?? char);
+}
+
+const resourceByModule: Partial<Record<ModuleName, string>> = {
+  Leads: "leads",
+  Clientes: "clients",
+  Projetos: "projects",
+  Propostas: "proposals",
+  Agenda: "meetings",
+  Serviços: "services",
+  Portefólio: "portfolio",
+  Manutenção: "maintenance",
+  Financeiro: "financial"
+};
+
+let currentUser: CurrentUser | null = null;
+let currentRecords: KoraRecord[] = [];
+let currentTeam: TeamUser[] = [];
+let currentAudit: AuditEntry[] = [];
+let pageEpoch = 0;
+
 function renderLogin(): void {
-  app!.innerHTML = `
-    <main class="login-screen">
-      <a class="brand login-brand" href="#/"><span class="brand-mark">K</span><span class="brand-name">KORA<span>AI</span></span></a>
-      <section class="login-card">
-        <div class="eyebrow">KORA COMMAND CENTER</div>
-        <h1>Área de acesso</h1>
-        <p>O acesso de equipa será ligado a um serviço de autenticação seguro antes da entrada em produção.</p>
-        <div class="login-lock">${icon("shield-check", 25)}</div>
-        <div class="login-notice"><b>Autenticação ainda não configurada</b><span>Este repositório contém a base visual. Não existem contas, palavras-passe ou sessões reais nesta versão.</span></div>
-        <button class="button button-primary login-demo" data-action="demo-dashboard">Abrir painel de demonstração ${icon("arrow-up-right", 16)}</button>
-        <a class="login-back" href="#/">Voltar ao website</a>
-      </section>
-      <span class="login-foot">ACESSO RESTRITO · KORA AI</span>
-    </main>`;
+  app!.innerHTML = [
+    '<main class="login-screen">',
+    '<a class="brand login-brand" href="#/"><span class="brand-mark">K</span><span class="brand-name">KORA<span>AI</span></span></a>',
+    '<section class="login-card">',
+    '<div class="eyebrow">KORA COMMAND CENTER</div><h1>Área de acesso</h1>',
+    '<p>Entra com a conta da equipa criada pelo responsável da plataforma.</p>',
+    '<div class="login-lock">' + icon("shield-check", 25) + '</div>',
+    '<form id="login-form" class="auth-form">',
+    '<label>Email profissional<input name="email" type="email" autocomplete="username" placeholder="nome@empresa.com" required /></label>',
+    '<label>Palavra-passe<input name="password" type="password" autocomplete="current-password" placeholder="A tua palavra-passe" required /></label>',
+    '<p class="form-feedback" id="login-feedback" role="alert"></p>',
+    '<button class="button button-primary login-demo" type="submit">Iniciar sessão ' + icon("arrow-up-right", 16) + '</button>',
+    '</form><a class="login-back" href="#/">Voltar ao website</a>',
+    '</section><span class="login-foot">ACESSO RESTRITO · KORA AI</span></main>'
+  ].join("");
   refreshIcons();
 }
 
-function renderDashboard(): void {
+function recordRows(records: KoraRecord[], allowDelete: boolean): string {
+  if (!records.length) {
+    return '<tr><td colspan="4" class="empty-cell">Ainda não existem registos nesta área. Usa “Novo registo” para adicionar o primeiro.</td></tr>';
+  }
+  return records.map((record) => {
+    const detail = [record.description, record.email, record.phone, record.country].filter(Boolean).join(" · ");
+    const amount = record.amount !== null && record.amount !== undefined
+      ? '<small>' + escapeHtml(record.amount) + ' ' + escapeHtml(record.currency || "") + '</small>' : "";
+    const actions = '<button class="row-action" data-record-edit="' + record.id + '">Editar</button>' +
+      (allowDelete ? '<button class="row-action danger" data-record-delete="' + record.id + '">Apagar</button>' : "");
+    return '<tr><td><b>' + escapeHtml(record.name) + '</b><small>' + escapeHtml(detail || "—") + '</small>' + amount + '</td>' +
+      '<td><span class="table-status">' + escapeHtml(record.status) + '</span></td>' +
+      '<td>' + escapeHtml(record.due_date || record.updated_at.slice(0, 10)) + '</td>' +
+      '<td><div class="row-actions">' + actions + '</div></td></tr>';
+  }).join("");
+}
+
+function teamRows(users: TeamUser[]): string {
+  if (!users.length) return '<tr><td colspan="4" class="empty-cell">Ainda não existem utilizadores.</td></tr>';
+  return users.map((user) => '<tr><td><b>' + escapeHtml(user.display_name) + '</b><small>' + escapeHtml(user.email) + '</small></td>' +
+    '<td><span class="table-status">' + escapeHtml(user.role) + '</span></td>' +
+    '<td>' + (user.is_active ? "Activo" : "Desactivado") + '</td>' +
+    '<td><button class="row-action" data-user-toggle="' + user.id + '" data-active="' + String(user.is_active) + '">' +
+    (user.is_active ? "Desactivar" : "Activar") + '</button></td></tr>').join("");
+}
+
+function settingsContent(): string {
+  return [
+    '<div class="settings-grid">',
+    '<article class="dash-panel settings-card"><div class="metric-icon">' + icon("globe-2", 18) + '</div><span class="side-group-label">MERCADOS</span><h3>Angola</h3><p>Moeda de referência: AOA (Kz)</p><span class="table-status">Por configurar</span></article>',
+    '<article class="dash-panel settings-card"><div class="metric-icon">' + icon("globe", 18) + '</div><span class="side-group-label">MERCADOS</span><h3>Portugal</h3><p>Moeda de referência: EUR (€)</p><span class="table-status">Por configurar</span></article>',
+    '<article class="dash-panel settings-card"><div class="metric-icon">' + icon("globe", 18) + '</div><span class="side-group-label">MERCADOS</span><h3>Brasil</h3><p>Moeda de referência: BRL (R$)</p><span class="table-status">Por configurar</span></article>',
+    '<article class="dash-panel settings-card wide"><span class="side-group-label">INTEGRAÇÕES EXTERNAS</span><h3>Serviços por ligar</h3><div class="integration-row"><span>Email transaccional</span><b>Não configurado</b></div><div class="integration-row"><span>Pagamentos</span><b>Não configurado</b></div><div class="integration-row"><span>WhatsApp Business</span><b>Não configurado</b></div><div class="integration-row"><span>Analytics do website</span><b>Não configurado</b></div></article>',
+    '</div>',
+    '<p class="module-footnote">' + icon("info", 15) + ' Estas definições são informativas nesta versão. Não existem ainda ligações a fornecedores externos nem configuração editável de impostos e faturação.</p>'
+  ].join("");
+}
+
+async function renderDashboard(): Promise<void> {
+  const epoch = ++pageEpoch;
+  if (!getToken()) {
+    if (window.location.hash !== "#/login") window.location.hash = "#/login";
+    renderLogin();
+    return;
+  }
+
+  let summary: DashboardSummary | null = null;
+  currentRecords = [];
+  currentTeam = [];
+  currentAudit = [];
+  try {
+    currentUser = await apiRequest<CurrentUser>("/api/auth/me");
+    if (currentUser.role === "client") {
+      app!.innerHTML = '<main class="login-screen"><section class="login-card"><h1>Portal de cliente</h1><p>O portal de cliente ainda não foi disponibilizado. Contacta a equipa KORA AI para obteres acompanhamento.</p><button class="button button-primary login-demo" data-action="logout">Terminar sessão</button></section></main>';
+      return;
+    }
+    if (activeModule === "Visão geral" || activeModule === "Analytics") {
+      summary = await apiRequest<DashboardSummary>("/api/dashboard/summary");
+    } else if (activeModule === "Equipa" && currentUser.role === "ceo") {
+      currentTeam = await apiRequest<TeamUser[]>("/api/users");
+    } else if (activeModule === "Auditoria" && (currentUser.role === "ceo" || currentUser.role === "admin")) {
+      currentAudit = await apiRequest<AuditEntry[]>("/api/audit");
+    } else if (resourceByModule[activeModule]) {
+      const kind = resourceByModule[activeModule]!;
+      currentRecords = await apiRequest<KoraRecord[]>("/api/records?kind=" + encodeURIComponent(kind));
+    }
+  } catch (error) {
+    if (epoch !== pageEpoch) return;
+    if (!getToken()) {
+      window.location.hash = "#/login";
+      renderLogin();
+    } else {
+      app!.innerHTML = '<main class="login-screen"><section class="login-card"><h1>Não foi possível carregar o painel</h1><p>' + escapeHtml(error instanceof Error ? error.message : "Erro inesperado") + '</p><button class="button button-primary login-demo" data-action="retry">Tentar novamente</button><a class="login-back" href="#/">Voltar ao website</a></section></main>';
+      refreshIcons();
+    }
+    return;
+  }
+
+  if (epoch !== pageEpoch || !window.location.hash.startsWith("#/ceo")) return;
+
   const grouped = ["Workspace", "Gestão", "Administração"];
   const nav = grouped.map((group) => {
-    const items = modules.filter((item) => item.group === group).map((item) =>
+    const items = modules.filter((item) => item.group === group && (currentUser?.role === "ceo" || item.name !== "Equipa") && ((currentUser?.role === "ceo" || currentUser?.role === "admin") || (item.name !== "Financeiro" && item.name !== "Auditoria"))).map((item) =>
       '<button class="side-link ' + (activeModule === item.name ? "active" : "") + '" data-module="' + item.name + '">' +
-      icon(item.icon, 17) + '<span>' + item.name + '</span>' + (item.name === "Leads" ? '<small>3</small>' : '') + '</button>'
+      icon(item.icon, 17) + '<span>' + item.name + '</span></button>'
     ).join("");
     return '<div class="side-group"><span class="side-group-label">' + group + '</span>' + items + '</div>';
   }).join("");
 
-  const records = demoRecords[activeModule];
-  const tableRows = records.map((record) =>
-    '<tr><td><b>' + record.name + '</b><small>' + record.detail + '</small></td><td><span class="table-status">' + record.status + '</span></td><td>' + record.date + '</td><td><button class="row-more" aria-label="Mais opções">···</button></td></tr>'
-  ).join("");
-
   const overview = activeModule === "Visão geral";
-  const content = overview ? `
-    <div class="metric-grid">
-      <article class="metric-card"><span>Visitas ao website</span><b>1.284</b><small class="metric-up">${icon("trending-up", 13)} +12,8% <i>vs. período anterior</i></small><div class="metric-icon">${icon("eye", 18)}</div></article>
-      <article class="metric-card"><span>Pedidos recebidos</span><b>24</b><small class="metric-up">${icon("trending-up", 13)} +8,2% <i>vs. período anterior</i></small><div class="metric-icon">${icon("inbox", 18)}</div></article>
-      <article class="metric-card"><span>Projetos ativos</span><b>06</b><small class="metric-neutral">Em diferentes fases</small><div class="metric-icon">${icon("layers-3", 18)}</div></article>
-      <article class="metric-card"><span>Clientes</span><b>12</b><small class="metric-neutral">Registos de demonstração</small><div class="metric-icon">${icon("users", 18)}</div></article>
-    </div>
-    <div class="dashboard-middle">
-      <section class="dash-panel analytics-panel"><div class="panel-head"><div><h3>Atividade do website</h3><p>Visitas ilustrativas · últimos 7 dias</p></div><button class="period-select">7 dias ${icon("chevron-down", 14)}</button></div><div class="chart-legend"><span><i></i> Visitas</span><b>1.284</b></div><div class="line-chart"><div class="chart-y"><span>400</span><span>300</span><span>200</span><span>100</span><span>0</span></div><svg viewBox="0 0 620 190" preserveAspectRatio="none" role="img" aria-label="Gráfico ilustrativo de visitas"><defs><linearGradient id="chartFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#4f8cff" stop-opacity=".25"/><stop offset="100%" stop-color="#4f8cff" stop-opacity="0"/></linearGradient></defs><path d="M0 150 C35 140 45 120 86 128 S145 98 175 112 S230 76 265 92 S330 95 350 72 S420 86 445 55 S510 62 535 39 S585 48 620 18 L620 190 L0 190Z" fill="url(#chartFill)"/><path d="M0 150 C35 140 45 120 86 128 S145 98 175 112 S230 76 265 92 S330 95 350 72 S420 86 445 55 S510 62 535 39 S585 48 620 18" fill="none" stroke="#5b91ff" stroke-width="2.5" vector-effect="non-scaling-stroke"/></svg></div><div class="chart-x"><span>12 Nov</span><span>13 Nov</span><span>14 Nov</span><span>15 Nov</span><span>16 Nov</span><span>17 Nov</span><span>18 Nov</span></div></section>
-      <section class="dash-panel sources-panel"><div class="panel-head"><div><h3>Origem dos pedidos</h3><p>Distribuição ilustrativa</p></div>${icon("more-horizontal", 19)}</div><div class="source-donut"><div><b>24</b><span>pedidos</span></div></div><div class="source-list"><div><i class="source-blue"></i><span>Website</span><b>58%</b></div><div><i class="source-purple"></i><span>WhatsApp</span><b>25%</b></div><div><i class="source-cyan"></i><span>Referência</span><b>17%</b></div></div></section>
-    </div>
-    <section class="dash-panel activity-panel"><div class="panel-head"><div><h3>Atividade recente</h3><p>Registos fictícios para demonstração da interface</p></div><button class="quiet-button" data-module="Leads">Ver leads ${icon("arrow-up-right", 14)}</button></div><div class="table-wrap"><table><thead><tr><th>Registo</th><th>Estado</th><th>Data</th><th></th></tr></thead><tbody>${tableRows}</tbody></table></div></section>
-  ` : `
-    <section class="module-intro"><div><div class="eyebrow">KORA COMMAND CENTER / ${activeModule.toUpperCase()}</div><h2>${activeModule}</h2><p>${getModuleDescription(activeModule)}</p></div><button class="button button-primary" data-action="demo-action">Novo registo ${icon("plus", 16)}</button></section>
-    <section class="dash-panel module-panel"><div class="panel-head"><div><h3>Registos</h3><p>Conteúdo ilustrativo — ainda não ligado a uma base de dados.</p></div><label class="table-search">${icon("search", 15)}<input id="table-search" type="search" placeholder="Pesquisar registos..." /></label></div><div class="table-wrap"><table><thead><tr><th>Nome / detalhe</th><th>Estado</th><th>Data</th><th></th></tr></thead><tbody id="records-body">${tableRows}</tbody></table></div></section>
-    <div class="module-footnote">${icon("info", 15)} Os registos apresentados são dados de demonstração. A persistência, permissões e operações serão ligadas ao backend nas próximas fases.</div>
-  `;
+  const analytics = activeModule === "Analytics";
+  const team = activeModule === "Equipa";
+  const audit = activeModule === "Auditoria";
+  const settings = activeModule === "Definições";
+  const isFinancial = activeModule === "Financeiro";
+  let content = "";
 
-  app!.innerHTML = `
-    <div class="dashboard-shell ${sidebarOpen ? "sidebar-visible" : ""}">
-      <aside class="sidebar">
-        <a class="brand sidebar-brand" href="#/"><span class="brand-mark">K</span><span class="brand-name">KORA<span>AI</span></span></a>
-        <div class="workspace-switch"><span class="workspace-avatar">K</span><div><b>KORA AI</b><small>Workspace principal</small></div>${icon("chevrons-up-down", 14)}</div>
-        <nav class="sidebar-nav" aria-label="Menu administrativo">${nav}</nav>
-        <div class="sidebar-bottom"><div class="support-card"><span>${icon("life-buoy", 17)}</span><b>Precisas de apoio?</b><small>Centro de suporte</small></div><button class="side-link" data-action="logout">${icon("log-out", 17)}<span>Voltar ao website</span></button><div class="user-profile"><span class="user-avatar">K</span><div><b>Administrador</b><small>Perfil de demonstração</small></div>${icon("more-horizontal", 18)}</div></div>
-      </aside>
-      <main class="dashboard-main">
-        <header class="dash-topbar"><button class="mobile-menu dash-menu" data-action="sidebar">${icon("menu", 20)}</button><div class="breadcrumb">KORA AI <span>/</span> <b>${activeModule}</b></div><div class="top-actions"><span class="demo-pill">MODO DEMONSTRAÇÃO</span><button class="icon-button" aria-label="Notificações">${icon("bell", 18)}<i></i></button><span class="top-avatar">K</span></div></header>
-        <div class="dashboard-content"><div class="page-title-row"><div><span class="page-kicker">TERÇA-FEIRA, 18 DE NOVEMBRO DE 2026</span><h1>${overview ? "Visão geral" : activeModule}</h1><p>${overview ? "Acompanha a atividade da KORA AI num só lugar." : "Gere e acompanha esta área da operação."}</p></div><button class="date-filter">${icon("calendar-days", 15)} Últimos 7 dias ${icon("chevron-down", 14)}</button></div>${content}</div>
-      </main>
-      <div class="toast" id="toast" role="status"></div>
-    </div>`;
+  if (overview && summary) {
+    const metric = (label: string, value: number, detail: string, symbol: string) =>
+      '<article class="metric-card"><span>' + label + '</span><b>' + value + '</b><small class="metric-neutral">' + detail + '</small><div class="metric-icon">' + icon(symbol, 18) + '</div></article>';
+    const recentRows = summary.recent.length ? summary.recent.map((item) =>
+      '<tr><td><b>' + escapeHtml(item.name) + '</b><small>' + escapeHtml(item.kind) + '</small></td><td><span class="table-status">' + escapeHtml(item.status) + '</span></td><td>' + escapeHtml(item.updated_at.slice(0, 10)) + '</td><td></td></tr>'
+    ).join("") : '<tr><td colspan="4" class="empty-cell">Ainda não existem actividades registadas.</td></tr>';
+    content = '<div class="metric-grid">' +
+      metric("Leads", summary.counts.leads || 0, "Registos guardados", "target") +
+      metric("Clientes", summary.counts.clients || 0, "Registos guardados", "users") +
+      metric("Projectos", summary.counts.projects || 0, "Registos guardados", "layers-3") +
+      metric("Propostas", summary.counts.proposals || 0, "Registos guardados", "file-text") +
+      '</div><div class="dashboard-middle"><section class="dash-panel analytics-panel"><div class="panel-head"><div><h3>Actividade operacional</h3><p>Actualizada a partir da base de dados</p></div>' + icon("database", 18) + '</div><div class="overview-note"><b>' + Object.values(summary.counts).reduce((a, b) => a + b, 0) + '</b><span>registos totais em todos os módulos</span></div><p class="module-footnote">Os indicadores operacionais são reais. Visitas, origem de tráfego e conversões ainda não estão ligados a analytics.</p></section>' +
+      '<section class="dash-panel sources-panel"><div class="panel-head"><div><h3>Leads por estado</h3><p>Distribuição dos registos guardados</p></div></div><div class="status-list">' +
+      Object.entries(summary.leads_by_status).map(([key, value]) => '<div><span>' + escapeHtml(key) + '</span><b>' + value + '</b></div>').join("") +
+      (Object.keys(summary.leads_by_status).length ? "" : '<p class="empty-note">Ainda não existem leads.</p>') +
+      '</div></section></div><section class="dash-panel activity-panel"><div class="panel-head"><div><h3>Actividade recente</h3><p>Últimos registos actualizados</p></div></div><div class="table-wrap"><table><thead><tr><th>Registo</th><th>Estado</th><th>Actualizado</th><th></th></tr></thead><tbody>' + recentRows + '</tbody></table></div></section>';
+  } else if (analytics && summary) {
+    content = '<div class="metric-grid">' +
+      '<article class="metric-card"><span>Leads</span><b>' + summary.counts.leads + '</b><small class="metric-neutral">Registos guardados</small></article>' +
+      '<article class="metric-card"><span>Clientes</span><b>' + summary.counts.clients + '</b><small class="metric-neutral">Registos guardados</small></article>' +
+      '<article class="metric-card"><span>Projectos</span><b>' + summary.counts.projects + '</b><small class="metric-neutral">Registos guardados</small></article>' +
+      '<article class="metric-card"><span>Propostas</span><b>' + summary.counts.proposals + '</b><small class="metric-neutral">Registos guardados</small></article></div>' +
+      '<section class="dash-panel activity-panel"><div class="panel-head"><div><h3>Analytics de tráfego</h3><p>Estado da integração</p></div><span class="table-status">Não ligado</span></div><p class="integration-explanation">' + escapeHtml(summary.note) + '</p><p class="module-footnote">Não apresentamos gráficos de visitas inventados. Depois de escolher e configurar o fornecedor de analytics, serão ligados eventos para page views, formulários e cliques em contactos.</p></section>';
+  } else if (team) {
+    const canManageTeam = currentUser?.role === "ceo";
+    const rows = teamRows(currentTeam);
+    content = canManageTeam
+      ? '<div class="module-intro"><div><div class="eyebrow">ADMINISTRAÇÃO / ACESSOS</div><h2>Equipa</h2><p>Contas, funções e estado de acesso.</p></div><button class="button button-primary" data-action="new-user">Adicionar utilizador ' + icon("user-plus", 16) + '</button></div><section class="dash-panel module-panel"><div class="panel-head"><div><h3>Contas da equipa</h3><p>As palavras-passe nunca são apresentadas nesta lista.</p></div></div><div class="table-wrap"><table><thead><tr><th>Utilizador</th><th>Função</th><th>Estado</th><th>Acção</th></tr></thead><tbody>' + rows + '</tbody></table></div></section><p class="module-footnote">' + icon("shield-check", 15) + ' Apenas o CEO pode criar, activar ou desactivar contas da equipa.</p>'
+      : '<section class="dash-panel module-panel"><h3>Acesso reservado ao CEO</h3><p class="integration-explanation">A gestão de utilizadores e permissões não está disponível para esta função.</p></section>';
+  } else if (audit) {
+    const rows = currentAudit.length ? currentAudit.map((entry) =>
+      '<tr><td><b>' + escapeHtml(entry.user_name) + '</b><small>' + escapeHtml(entry.created_at.slice(0, 19).replace("T", " ")) + '</small></td><td><span class="table-status">' + escapeHtml(entry.action) + '</span></td><td>' + escapeHtml(entry.entity) + (entry.entity_id ? ' #' + entry.entity_id : '') + '</td><td>' + escapeHtml(JSON.stringify(entry.details || {})) + '</td></tr>'
+    ).join("") : '<tr><td colspan="4" class="empty-cell">Ainda não existem eventos de auditoria.</td></tr>';
+    content = '<section class="dash-panel module-panel"><div class="panel-head"><div><h3>Histórico de operações</h3><p>Últimos ' + currentAudit.length + ' eventos registados pela API.</p></div></div><div class="table-wrap"><table><thead><tr><th>Utilizador / data</th><th>Acção</th><th>Área</th><th>Detalhes</th></tr></thead><tbody>' + rows + '</tbody></table></div></section><p class="module-footnote">' + icon("shield-check", 15) + ' O histórico é apenas de consulta e está reservado ao CEO e aos administradores.</p>';
+  } else if (settings) {
+    content = settingsContent();
+  } else {
+    const canDelete = currentUser?.role === "ceo" || currentUser?.role === "admin";
+    const rows = recordRows(currentRecords, canDelete);
+    const resource = resourceByModule[activeModule];
+    content = '<section class="dash-panel module-panel"><div class="panel-head"><div><h3>Registos de ' + activeModule + '</h3><p>' + currentRecords.length + ' registo(s) guardado(s) na base de dados.</p></div><label class="table-search">' + icon("search", 15) + '<input id="table-search" type="search" placeholder="Pesquisar registos..." /></label></div><div class="table-wrap"><table><thead><tr><th>Nome / detalhe</th><th>Estado</th><th>Prazo / actualização</th><th>Acções</th></tr></thead><tbody id="records-body">' + rows + '</tbody></table></div></section>' +
+      '<p class="module-footnote">' + icon("database", 15) + (isFinancial ? "Os lançamentos ficam guardados, mas não processam pagamentos nem substituem facturação fiscal." : "Os dados são persistidos na base de dados local configurada no backend.") + '</p>';
+    if (resource && activeModule !== "Financeiro" && currentUser?.role !== "client") {
+      content = '<div class="module-intro"><div><div class="eyebrow">KORA COMMAND CENTER / ' + activeModule.toUpperCase() + '</div><h2>' + activeModule + '</h2><p>' + getModuleDescription(activeModule) + '</p></div><button class="button button-primary" data-action="new-record">Novo registo ' + icon("plus", 16) + '</button></div>' + content;
+    } else if (resource && isFinancial && (currentUser?.role === "ceo" || currentUser?.role === "admin")) {
+      content = '<div class="module-intro"><div><div class="eyebrow">KORA COMMAND CENTER / FINANCEIRO</div><h2>Financeiro</h2><p>Registo de movimentos e valores por moeda.</p></div><button class="button button-primary" data-action="new-record">Novo lançamento ' + icon("plus", 16) + '</button></div>' + content;
+    } else {
+      content = '<div class="module-intro"><div><div class="eyebrow">KORA COMMAND CENTER / ' + activeModule.toUpperCase() + '</div><h2>' + activeModule + '</h2><p>' + getModuleDescription(activeModule) + '</p></div></div>' + content;
+    }
+  }
+
+  const title = activeModule === "Visão geral" ? "Visão geral" : activeModule;
+  const date = new Intl.DateTimeFormat("pt-PT", { dateStyle: "full" }).format(new Date());
+  app!.innerHTML = [
+    '<div class="dashboard-shell ' + (sidebarOpen ? "sidebar-visible" : "") + '">',
+    '<aside class="sidebar"><a class="brand sidebar-brand" href="#/"><span class="brand-mark">K</span><span class="brand-name">KORA<span>AI</span></span></a>',
+    '<div class="workspace-switch"><span class="workspace-avatar">K</span><div><b>KORA AI</b><small>Workspace principal</small></div>' + icon("chevrons-up-down", 14) + '</div>',
+    '<nav class="sidebar-nav" aria-label="Menu administrativo">' + nav + '</nav>',
+    '<div class="sidebar-bottom"><div class="support-card"><span>' + icon("life-buoy", 17) + '</span><b>Centro de suporte</b><small>Contacto a configurar</small></div>',
+    '<button class="side-link" data-action="logout">' + icon("log-out", 17) + '<span>Terminar sessão</span></button>',
+    '<div class="user-profile"><span class="user-avatar">' + escapeHtml((currentUser?.display_name || "K").slice(0, 1).toUpperCase()) + '</span><div><b>' + escapeHtml(currentUser?.display_name || "Utilizador") + '</b><small>' + escapeHtml(currentUser?.role || "") + '</small></div>' + icon("more-horizontal", 18) + '</div></div></aside>',
+    '<main class="dashboard-main"><header class="dash-topbar"><button class="mobile-menu dash-menu" data-action="sidebar">' + icon("menu", 20) + '</button><div class="breadcrumb">KORA AI <span>/</span> <b>' + escapeHtml(title) + '</b></div><div class="top-actions"><span class="demo-pill live-pill">DADOS REAIS DA BASE DE DADOS</span><button class="icon-button" aria-label="Sessão protegida">' + icon("shield-check", 18) + '</button><span class="top-avatar">' + escapeHtml((currentUser?.display_name || "K").slice(0, 1).toUpperCase()) + '</span></div></header>',
+    '<div class="dashboard-content"><div class="page-title-row"><div><span class="page-kicker">' + escapeHtml(date.toUpperCase()) + '</span><h1>' + escapeHtml(title) + '</h1><p>' + escapeHtml(overview ? "Indicadores calculados a partir dos registos guardados." : getModuleDescription(activeModule)) + '</p></div></div>' + content + '</div></main>',
+    '<dialog id="record-dialog" class="record-dialog"><form id="record-form"><input type="hidden" name="record_id" /><div class="dialog-head"><div><span class="eyebrow">KORA AI / REGISTO</span><h2 id="record-dialog-title">Novo registo</h2></div><button type="button" class="dialog-close" data-action="close-record" aria-label="Fechar">×</button></div>',
+    '<div class="dialog-grid"><label>Nome<input name="name" required minlength="2" maxlength="180" /></label><label>Estado<select name="status"><option>Novo</option><option>Em contacto</option><option>Em curso</option><option>Em revisão</option><option>Concluído</option><option>Activo</option><option>Inactivo</option><option>Enviada</option><option>Aprovada</option><option>Cancelada</option></select></label>',
+    '<label class="full-field">Descrição<textarea name="description" rows="3"></textarea></label><label>Email<input name="email" type="email" /></label><label>Telefone<input name="phone" /></label><label>País<input name="country" /></label><label>Moeda<select name="currency"><option value="">—</option><option value="AOA">AOA · Kz</option><option value="EUR">EUR · €</option><option value="BRL">BRL · R$</option></select></label><label>Valor<input name="amount" type="number" min="0" step="0.01" /></label><label>Prazo<input name="due_date" type="date" /></label></div>',
+    '<p class="form-feedback" id="record-feedback" role="alert"></p><div class="dialog-actions"><button type="button" class="button button-outline" data-action="close-record">Cancelar</button><button class="button button-primary" type="submit">Guardar registo ' + icon("check", 16) + '</button></div></form></dialog>',
+    '<dialog id="team-dialog" class="record-dialog"><form id="team-form"><div class="dialog-head"><div><span class="eyebrow">KORA AI / EQUIPA</span><h2>Adicionar utilizador</h2></div><button type="button" class="dialog-close" data-action="close-team">×</button></div><div class="dialog-grid"><label>Nome<input name="display_name" required minlength="2" /></label><label>Email<input name="email" type="email" required /></label><label>Função<select name="role"><option value="admin">Administrador</option><option value="collaborator">Colaborador</option><option value="client">Cliente</option></select></label><label>Palavra-passe temporária<input name="password" type="password" minlength="14" required /></label></div><p class="form-feedback" id="team-feedback" role="alert">A palavra-passe deve ter pelo menos 14 caracteres. Partilha-a de forma segura e pede ao utilizador para a alterar após a primeira entrada.</p><div class="dialog-actions"><button type="button" class="button button-outline" data-action="close-team">Cancelar</button><button class="button button-primary" type="submit">Criar conta ' + icon("user-plus", 16) + '</button></div></form></dialog>',
+    '<div class="toast" id="toast" role="status"></div></div>'
+  ].join("");
   refreshIcons();
+}
+
+function openRecordDialog(record?: KoraRecord): void {
+  const dialog = document.getElementById("record-dialog") as HTMLDialogElement | null;
+  const form = document.getElementById("record-form") as HTMLFormElement | null;
+  if (!dialog || !form) return;
+  form.reset();
+  const set = (name: string, value: string) => {
+    const field = form.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null;
+    if (field) field.value = value;
+  };
+  set("record_id", record ? String(record.id) : "");
+  set("name", record?.name || "");
+  set("description", record?.description || "");
+  set("status", record?.status || "Novo");
+  set("email", record?.email || "");
+  set("phone", record?.phone || "");
+  set("country", record?.country || "");
+  set("currency", record?.currency || "");
+  set("amount", record?.amount === null || record?.amount === undefined ? "" : String(record.amount));
+  set("due_date", record?.due_date || "");
+  const heading = document.getElementById("record-dialog-title");
+  if (heading) heading.textContent = record ? "Editar registo" : "Novo registo";
+  dialog.showModal();
+}
+
+function openTeamDialog(): void {
+  const dialog = document.getElementById("team-dialog") as HTMLDialogElement | null;
+  (document.getElementById("team-form") as HTMLFormElement | null)?.reset();
+  dialog?.showModal();
 }
 
 function getModuleDescription(module: ModuleName): string {
@@ -201,7 +378,8 @@ function getModuleDescription(module: ModuleName): string {
     Financeiro: "Organiza registos financeiros; não substitui um sistema fiscal certificado.",
     Analytics: "Analisa tráfego, conversões e interação com os canais digitais.",
     Equipa: "Gere membros, funções e permissões de acesso.",
-    Definições: "Configura mercados, preferências e futuras integrações."
+    Definições: "Configura mercados, preferências e futuras integrações.",
+    Auditoria: "Consulta o histórico de autenticações e operações administrativas."
   };
   return descriptions[module];
 }
@@ -216,9 +394,9 @@ function showToast(message: string): void {
 
 function render(): void {
   const route = window.location.hash;
-  if (route.startsWith("#/ceo")) renderDashboard();
+  if (route.startsWith("#/ceo")) void renderDashboard();
   else if (route.startsWith("#/login")) renderLogin();
-  else renderHome();
+  else { pageEpoch += 1; renderHome(); }
 }
 
 app.addEventListener("click", (event: MouseEvent) => {
@@ -236,26 +414,163 @@ app.addEventListener("click", (event: MouseEvent) => {
   if (moduleButton) {
     activeModule = moduleButton.dataset.module as ModuleName;
     sidebarOpen = false;
-    renderDashboard();
+    void renderDashboard();
+    return;
+  }
+
+  const editButton = target.closest<HTMLButtonElement>("[data-record-edit]");
+  if (editButton) {
+    const record = currentRecords.find((item) => item.id === Number(editButton.dataset.recordEdit));
+    if (record) openRecordDialog(record);
+    return;
+  }
+
+  const deleteButton = target.closest<HTMLButtonElement>("[data-record-delete]");
+  if (deleteButton) {
+    const id = Number(deleteButton.dataset.recordDelete);
+    if (!window.confirm("Apagar este registo? Esta operação não pode ser anulada.")) return;
+    const record = currentRecords.find((item) => item.id === id);
+    if (record) {
+      void apiRequest<void>("/api/records/" + id, { method: "DELETE" })
+        .then(() => { showToast("Registo apagado."); return renderDashboard(); })
+        .catch((error: unknown) => showToast(error instanceof Error ? error.message : "Não foi possível apagar."));
+    }
+    return;
+  }
+
+  const toggleUser = target.closest<HTMLButtonElement>("[data-user-toggle]");
+  if (toggleUser) {
+    const id = Number(toggleUser.dataset.userToggle);
+    const isActive = toggleUser.dataset.active === "true";
+    void apiRequest<TeamUser>("/api/users/" + id, {
+      method: "PATCH",
+      body: JSON.stringify({ is_active: !isActive })
+    }).then(() => renderDashboard())
+      .catch((error: unknown) => showToast(error instanceof Error ? error.message : "Não foi possível alterar a conta."));
     return;
   }
 
   const actionButton = target.closest<HTMLButtonElement>("[data-action]");
   if (!actionButton) return;
   const action = actionButton.dataset.action;
-  if (action === "demo-dashboard") window.location.hash = "#/ceo";
-  if (action === "logout") window.location.hash = "#/";
+  if (action === "logout") { clearToken(); currentUser = null; window.location.hash = "#/"; }
   if (action === "sidebar") { sidebarOpen = !sidebarOpen; document.querySelector(".dashboard-shell")?.classList.toggle("sidebar-visible", sidebarOpen); }
   if (action === "menu") document.querySelector(".main-nav")?.classList.toggle("nav-open");
-  if (action === "demo-action") showToast("Modo de demonstração: esta operação será ligada ao backend.");
+  if (action === "new-record") openRecordDialog();
+  if (action === "new-user") openTeamDialog();
+  if (action === "close-record") (document.getElementById("record-dialog") as HTMLDialogElement | null)?.close();
+  if (action === "close-team") (document.getElementById("team-dialog") as HTMLDialogElement | null)?.close();
+  if (action === "retry") void renderDashboard();
 });
 
 app.addEventListener("submit", (event: SubmitEvent) => {
   const form = event.target;
-  if (form instanceof HTMLFormElement && form.id === "contact-form") {
+  if (!(form instanceof HTMLFormElement)) return;
+
+  if (form.id === "login-form") {
     event.preventDefault();
+    const feedback = document.getElementById("login-feedback");
+    const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+    if (button) button.disabled = true;
+    const formData = new FormData(form);
+    clearToken();
+    void apiRequest<{ access_token: string }>("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({
+        email: String(formData.get("email") || ""),
+        password: String(formData.get("password") || "")
+      })
+    }).then((result) => {
+      setToken(result.access_token);
+      window.location.hash = "#/ceo";
+    }).catch((error: unknown) => {
+      if (feedback) feedback.textContent = error instanceof Error ? error.message : "Não foi possível iniciar sessão.";
+      if (button) button.disabled = false;
+    });
+    return;
+  }
+
+  if (form.id === "record-form") {
+    event.preventDefault();
+    const formData = new FormData(form);
+    const id = String(formData.get("record_id") || "");
+    const amountValue = String(formData.get("amount") || "");
+    const payload: RecordPayload = {
+      name: String(formData.get("name") || "").trim(),
+      description: String(formData.get("description") || "").trim() || null,
+      status: String(formData.get("status") || "Novo"),
+      email: String(formData.get("email") || "").trim() || null,
+      phone: String(formData.get("phone") || "").trim() || null,
+      country: String(formData.get("country") || "").trim() || null,
+      currency: String(formData.get("currency") || "") || null,
+      amount: amountValue ? Number(amountValue) : null,
+      due_date: String(formData.get("due_date") || "") || null
+    };
+    const kind = resourceByModule[activeModule];
+    if (!kind) return;
+    const feedback = document.getElementById("record-feedback");
+    const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+    if (submit) submit.disabled = true;
+    const path = id ? "/api/records/" + id : "/api/records?kind=" + encodeURIComponent(kind);
+    void apiRequest<KoraRecord>(path, {
+      method: id ? "PATCH" : "POST",
+      body: JSON.stringify(payload)
+    }).then(() => {
+      (document.getElementById("record-dialog") as HTMLDialogElement | null)?.close();
+      showToast(id ? "Registo actualizado." : "Registo criado.");
+      return renderDashboard();
+    }).catch((error: unknown) => {
+      if (feedback) feedback.textContent = error instanceof Error ? error.message : "Não foi possível guardar o registo.";
+    }).finally(() => { if (submit) submit.disabled = false; });
+    return;
+  }
+
+  if (form.id === "team-form") {
+    event.preventDefault();
+    const data = new FormData(form);
+    const feedback = document.getElementById("team-feedback");
+    const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+    if (submit) submit.disabled = true;
+    void apiRequest<TeamUser>("/api/users", {
+      method: "POST",
+      body: JSON.stringify({
+        display_name: String(data.get("display_name") || "").trim(),
+        email: String(data.get("email") || "").trim(),
+        role: String(data.get("role") || "collaborator"),
+        password: String(data.get("password") || "")
+      })
+    }).then(() => {
+      (document.getElementById("team-dialog") as HTMLDialogElement | null)?.close();
+      showToast("Conta da equipa criada.");
+      return renderDashboard();
+    }).catch((error: unknown) => {
+      if (feedback) feedback.textContent = error instanceof Error ? error.message : "Não foi possível criar a conta.";
+    }).finally(() => { if (submit) submit.disabled = false; });
+    return;
+  }
+
+  if (form.id === "contact-form") {
+    event.preventDefault();
+    const formData = new FormData(form);
     const feedback = document.getElementById("form-feedback");
-    if (feedback) feedback.textContent = "Formulário validado nesta demonstração. O pedido não foi enviado nem guardado: falta ligar o serviço de email e a API.";
+    const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+    if (submit) submit.disabled = true;
+    void apiRequest<{ id: number; message: string }>("/api/public/inquiries", {
+      method: "POST",
+      body: JSON.stringify({
+        name: String(formData.get("name") || "").trim(),
+        email: String(formData.get("email") || "").trim(),
+        country: String(formData.get("market") || "").trim(),
+        message: String(formData.get("message") || "").trim(),
+        consent: formData.get("consent") === "true",
+        website: String(formData.get("website") || "")
+      })
+    }).then((result) => {
+      form.reset();
+      if (feedback) feedback.textContent = result.id ? "Pedido recebido e registado. A equipa poderá responder quando o canal de email estiver configurado." : "Pedido recebido.";
+    }).catch((error: unknown) => {
+      if (feedback) feedback.textContent = error instanceof Error ? error.message : "Não foi possível enviar o pedido.";
+    }).finally(() => { if (submit) submit.disabled = false; });
   }
 });
 

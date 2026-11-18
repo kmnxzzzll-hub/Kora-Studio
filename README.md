@@ -1,87 +1,96 @@
-# KORA AI — Digital Studio Platform
+# KORA AI — Plataforma do Estúdio Digital
 
-Base inicial do website institucional e do KORA Command Center.
+Website institucional e base operacional do **KORA Command Center**.
 
-## Direção do produto
+## Stack
 
-A KORA AI apresenta serviços de estratégia digital, websites e plataformas, UI/UX, automação e IA, comércio digital e sistemas empresariais. A experiência foi estruturada para os mercados de Angola (AOA), Portugal (EUR) e Brasil (BRL).
+- Frontend: TypeScript, Vite, HTML e CSS.
+- Backend: Python, FastAPI e SQLAlchemy.
+- Base de dados local: SQLite (configurável por `DATABASE_URL`).
+- Sessões: JWT com expiração e palavras-passe protegidas por Argon2.
+- Mercados previstos: Angola (AOA), Portugal (EUR) e Brasil (BRL).
 
-## Estrutura
+## Instalação local
 
-```text
-.
-├── backend/
-│   └── app/
-│       ├── config.py
-│       ├── main.py
-│       └── routers/
-│           └── health.py
-├── src/
-│   ├── data.ts
-│   ├── main.ts
-│   ├── styles.css
-│   └── types.ts
-├── .env.example
-├── index.html
-├── package.json
-├── requirements.txt
-├── tsconfig.json
-└── vite.config.ts
-```
-
-## Executar o frontend
+### 1. Frontend
 
 Requisitos: Node.js 20 ou superior.
 
 ```bash
 npm install
+npm run typecheck
+npm run build
 npm run dev
 ```
 
-Para validar e gerar a versão de produção:
+O website fica disponível em `http://localhost:5173`.
 
-```bash
-npm run typecheck
-npm run build
-npm run preview
-```
-
-## Executar a API Python
+### 2. Backend
 
 Requisitos: Python 3.10 ou superior.
 
 ```bash
 python -m venv .venv
-# Windows: .venv\Scripts\activate
+# Windows PowerShell: .venv\Scripts\Activate.ps1
 # macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload --app-dir backend
 ```
 
-A verificação de disponibilidade fica em `http://127.0.0.1:8000/api/health`. A documentação OpenAPI fica em `http://127.0.0.1:8000/docs`.
+A API fica disponível em `http://127.0.0.1:8000`; a documentação interactiva fica em `http://127.0.0.1:8000/docs`.
 
-## O que esta primeira versão contém
+Copia `.env.example` para `.env` e ajusta as variáveis. Em produção, define um `JWT_SECRET` aleatório com pelo menos 48 caracteres, uma base de dados PostgreSQL, HTTPS e origens CORS exactas. Nunca publiques ficheiros `.env` nem palavras-passe.
 
-- Website público responsivo com serviços, conceitos de portefólio, processo, soluções e formulário de contacto demonstrativo.
-- KORA Command Center com navegação por módulos, cartões, gráficos SVG, tabelas e pesquisa local.
-- Base de API FastAPI com configuração por variáveis de ambiente e endpoint de saúde.
-- Estilos responsivos, estados de foco e respeito pela preferência de movimento reduzido.
+### 3. Criar a primeira conta CEO
 
-## Limites importantes desta entrega
+Não existe palavra-passe padrão nem conta administrativa pré-criada. Define as variáveis no terminal e executa o script uma única vez:
 
-Esta é a **fundação visual e técnica**, não uma plataforma empresarial pronta para produção. Os conteúdos, números do painel e registos são dados ilustrativos. O formulário apenas valida os campos no navegador e não envia nem guarda pedidos. O painel de demonstração não tem autenticação, controlo de permissões ou persistência de dados. Não estão ligadas bases de dados, email, pagamentos, WhatsApp, analytics externo, serviços de IA ou integrações de terceiros.
+```bash
+KORA_CEO_EMAIL=owner@example.com KORA_CEO_PASSWORD='uma-palavra-passe-longa-e-unica' python backend/create_ceo.py
+```
 
-Antes de publicar a área CEO ou receber dados de clientes, é obrigatório implementar autenticação segura no servidor, autorização por função, base de dados, validação e proteção de API, gestão de segredos, logs, backups e testes. Não usar a rota de demonstração como área administrativa real.
+No Windows PowerShell:
 
-Os cartões de soluções não fixam preços comerciais. Os valores por mercado, impostos, faturação e condições de manutenção ainda terão de ser aprovados e configurados. Os projetos Atelier Norte, Casa Amora e Nova Studio são conceitos de demonstração, não clientes nem trabalhos reais.
+```powershell
+$env:KORA_CEO_EMAIL="owner@example.com"
+$env:KORA_CEO_PASSWORD="uma-palavra-passe-longa-e-unica"
+python backend/create_ceo.py
+```
 
-O símbolo apresentado na interface é um monograma tipográfico temporário. Deve ser substituído pelo ficheiro original do símbolo K aprovado para a marca, sem redesenhar ou alterar o logótipo.
+Usa uma palavra-passe única com pelo menos 14 caracteres. Não a coloques no código, no GitHub ou em mensagens.
 
-## Próximas fases técnicas
+## Funcionalidades implementadas nesta fase
 
-1. Autenticação e recuperação de conta, com permissões CEO, administrador, colaborador e cliente.
-2. Base de dados e modelos para leads, clientes, projetos, propostas, agenda, serviços e manutenção.
-3. Integração de email, formulários e notificações.
-4. Gestão do portefólio e conteúdos a partir do painel.
-5. Analytics real, financeiro e relatórios, com separação por mercado e moeda.
-6. Testes automatizados, segurança, acessibilidade, desempenho e preparação de produção.
+- Login pela API, verificação de sessão e terminação de sessão.
+- Palavras-passe com hash Argon2 e tokens JWT com expiração.
+- Criação inicial do CEO sem credenciais padrão.
+- Funções de acesso: CEO, administrador, colaborador e cliente.
+- Protecção de rotas de equipa e dados financeiros por função.
+- Operações de criar, consultar, editar e apagar para leads, clientes, projectos, propostas, reuniões, serviços, portefólio, manutenção e lançamentos financeiros.
+- Pesquisa e paginação de registos, validação de campos e confirmação antes de apagar.
+- Gestão de contas da equipa pelo CEO: criar, activar e desactivar utilizadores.
+- Indicadores operacionais calculados a partir da base de dados.
+- Registo de auditoria para login, operações de escrita e pedidos públicos; visualização reservada a CEO e administradores.
+- Formulário público com validação, consentimento e criação de lead na base de dados.
+- Limite básico de pedidos públicos por endereço IP (em memória, por processo).
+- Website e painel responsivos.
+- Workflow de CI para verificar TypeScript, build do frontend e compilação Python.
+
+## O que ainda não está concluído
+
+Esta é uma versão operacional inicial, não um sistema empresarial pronto para utilização pública. Não foram ligadas credenciais nem fornecedores externos.
+
+- Email e notificações automáticas: por integrar; o formulário guarda o lead mas não envia email.
+- WhatsApp Business: por integrar.
+- Pagamentos, reconciliação e facturação fiscal: por integrar; os lançamentos financeiros não processam dinheiro.
+- Analytics de tráfego e conversões: por integrar. O painel não apresenta visitas inventadas.
+- Armazenamento de imagens e ficheiros: por integrar.
+- Portal de cliente: ainda por desenvolver.
+- Recuperação e alteração de palavra-passe: por desenvolver.
+- Gestão avançada de propostas, tarefas, contratos, documentos PDF, impostos e preços localizados: por desenvolver.
+- Gestão de conteúdos do website e portefólio a partir do painel: por desenvolver.
+- Testes automatizados de regras de negócio, migrações de base de dados, limitação de tentativas de login, monitorização e revisão de segurança: necessários antes de produção.
+
+A base SQLite e o limitador público em memória servem apenas para desenvolvimento e testes iniciais. Para produção, usar PostgreSQL, migrações (por exemplo Alembic), rate limiting partilhado, backups, HTTPS, gestão segura de segredos, CSP, política de privacidade e retenção de dados, e revisão de segurança. A autenticação desta versão é uma base funcional que ainda precisa de hardening antes de expor o painel à Internet.
+
+Os conceitos Atelier Norte, Casa Amora e Nova Studio são demonstrações e não devem ser apresentados como clientes reais. O monograma tipográfico temporário deve ser substituído pelo ficheiro original do símbolo K aprovado para a marca.
