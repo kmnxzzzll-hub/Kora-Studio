@@ -68,5 +68,6 @@ export const demoRecords: Record<ModuleName, DemoRecord[]> = {
   Definições: [
     { name: "Mercados", detail: "Portugal · Brasil · Angola", status: "Por configurar", date: "—" },
     { name: "Integrações", detail: "Email · Analytics · Pagamentos", status: "Não ligadas", date: "—" }
-  ]
+  ],
+  Auditoria: []
 };
