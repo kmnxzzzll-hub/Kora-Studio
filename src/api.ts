@@ -1,4 +1,4 @@
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 const TOKEN_KEY = "kora_session_token";
 
 export type CurrentUser = {
@@ -73,7 +73,7 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
   try {
     response = await fetch(`${API_BASE}${path}`, { ...init, headers });
   } catch {
-    throw new Error("Não foi possível contactar a API. Confirma se o backend está iniciado.");
+    throw new Error("Não foi possível contactar a API. Confirma se o backend está iniciado e se VITE_API_BASE_URL está configurado.");
   }
 
   if (response.status === 401) clearToken();
