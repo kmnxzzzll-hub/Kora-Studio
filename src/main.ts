@@ -22,6 +22,34 @@ function scrollToSection(id: string): void {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+function initHomeMotion(): void {
+  const targets = app?.querySelectorAll<HTMLElement>(
+    ".hero-copy, .hero-image-shell, .market-inner, .section-heading, .service-card, .work-card, .process-step, .price-card, .contact-panel"
+  );
+  if (!targets?.length) return;
+
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  targets.forEach((element, index) => {
+    element.classList.add("motion-reveal");
+    element.style.setProperty("--reveal-delay", `${(index % 4) * 75}ms`);
+  });
+
+  if (reducedMotion || !("IntersectionObserver" in window)) {
+    targets.forEach((element) => element.classList.add("is-visible"));
+    return;
+  }
+
+  const observer = new IntersectionObserver((entries, currentObserver) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add("is-visible");
+      currentObserver.unobserve(entry.target);
+    });
+  }, { threshold: 0.12, rootMargin: "0px 0px -35px 0px" });
+
+  targets.forEach((element) => observer.observe(element));
+}
+
 function renderHome(): void {
   app!.innerHTML = `
     <div class="site-shell">
@@ -51,21 +79,16 @@ function renderHome(): void {
             </div>
             <div class="hero-proof"><span class="proof-line"></span><span>ESTRATÉGIA COM INTENÇÃO. EXECUÇÃO COM PRECISÃO.</span></div>
           </div>
-          <div class="hero-art" aria-label="Composição visual de interfaces digitais">
-            <div class="art-glow"></div>
-            <div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div>
-            <div class="floating-label label-top"><span class="status-live"></span> DIGITAL EXPERIENCE</div>
-            <div class="browser-card">
-              <div class="browser-top"><div class="browser-dots"><i></i><i></i><i></i></div><span>kora.studio / overview</span><span class="browser-lock">${icon("lock", 12)}</span></div>
-              <div class="browser-content">
-                <div class="browser-nav"><b>K.</b><span>ABOUT&nbsp;&nbsp; SERVICES&nbsp;&nbsp; WORK</span><small>LET'S TALK ↗</small></div>
-                <div class="browser-title">Make your<br><strong>next move.</strong></div>
-                <div class="browser-subtitle">Digital products built around people and purpose.</div>
-                <div class="browser-visual"><div class="visual-block visual-a"></div><div class="visual-block visual-b"></div><div class="visual-block visual-c"></div><span>DESIGN / BUILD / GROW</span></div>
-              </div>
+          <div class="hero-art" aria-label="Fotografia de um espaço de trabalho criativo e tecnológico">
+            <div class="hero-image-shell">
+              <img class="hero-photo" src="https://images.unsplash.com/photo-1745910020846-3d4d0088d24d?auto=format&amp;fit=crop&amp;w=1800&amp;q=88" alt="Espaço de trabalho contemporâneo com monitores e equipamento de design" fetchpriority="high" decoding="async" />
+              <div class="hero-image-shade"></div>
+              <div class="hero-image-top"><span class="hero-image-mark">K.</span><span><i></i> DIGITAL STUDIO / 2026</span></div>
+              <div class="hero-image-caption"><span>IDEIAS BEM CONSTRUÍDAS.</span><b>Experiências que movem negócios.</b></div>
+              <div class="hero-glass-card"><span class="hero-glass-icon">${icon("layers-3", 18)}</span><div><b>Estratégia + Design + Tecnologia</b><small>UMA EXPERIÊNCIA DIGITAL COMPLETA</small></div><span class="hero-glass-arrow">↗</span></div>
+              <div class="hero-floating-tag"><span class="status-live"></span> FEITO PARA EVOLUIR</div>
             </div>
-            <div class="floating-stat"><span class="stat-icon">${icon("activity", 17)}</span><div><b>Experiência</b><small>DESIGN + PERFORMANCE</small></div><span class="stat-spark">↗</span></div>
-            <div class="floating-label label-bottom">KORA / DIGITAL STUDIO <span>2026</span></div>
+            <div class="hero-orbit-glow"></div>
           </div>
         </section>
 
@@ -89,9 +112,9 @@ function renderHome(): void {
           <div class="section-wrap section-block">
             <div class="section-heading"><div><div class="eyebrow">TRABALHO SELECIONADO</div><h2>Ideias que ganham<br><em>forma digital.</em></h2></div><p>Conceitos de demonstração que mostram a qualidade e a variedade de experiências que a KORA AI pode desenvolver.</p></div>
             <div class="work-grid">
-              <article class="work-card work-large"><div class="work-preview preview-fashion"><div class="preview-top"><b>ATELIER / N°01</b><span>COLLECTION 2026</span></div><div class="fashion-shape"></div><div class="preview-word">Less,<br><i>but better.</i></div><div class="preview-bottom">DESIGNED TO BE TIMELESS <span>↗</span></div></div><div class="work-caption"><div><span>CONCEITO · E-COMMERCE</span><h3>Atelier Norte</h3></div><span class="work-arrow">↗</span></div></article>
-              <article class="work-card"><div class="work-preview preview-food"><div class="food-header"><b>CASA AMORA</b><span>MENU & MOMENTS</span></div><div class="food-title">Feito com<br><i>tempo.</i></div><div class="food-circle"></div><div class="food-footer">COZINHA DE AUTOR · DESDE 2020</div></div><div class="work-caption"><div><span>CONCEITO · RESTAURAÇÃO</span><h3>Casa Amora</h3></div><span class="work-arrow">↗</span></div></article>
-              <article class="work-card"><div class="work-preview preview-tech"><div class="tech-sidebar">NOVA<span>STUDIO</span><small>OVERVIEW<br>PROJECTS<br>INSIGHTS</small></div><div class="tech-main"><span>YOUR BUSINESS, IN FOCUS</span><h3>Clarity in<br>every move.</h3><div class="tech-chart"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><small>PERFORMANCE / 2026</small></div></div><div class="work-caption"><div><span>CONCEITO · SISTEMA EMPRESARIAL</span><h3>Nova Studio</h3></div><span class="work-arrow">↗</span></div></article>
+              <article class="work-card work-large"><div class="work-preview preview-fashion"><img class="work-image" src="https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?auto=format&amp;fit=crop&amp;w=1400&amp;q=85" alt="Selecção de peças numa boutique de moda" loading="lazy" decoding="async" /><div class="work-image-shade"></div><div class="preview-top"><b>ATELIER / N°01</b><span>COLLECTION 2026</span></div><div class="preview-word">Less,<br><i>but better.</i></div><div class="preview-bottom">DESIGNED TO BE TIMELESS <span>↗</span></div></div><div class="work-caption"><div><span>CONCEITO · E-COMMERCE</span><h3>Atelier Norte</h3></div><span class="work-arrow">↗</span></div></article>
+              <article class="work-card"><div class="work-preview preview-food"><img class="work-image" src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&amp;fit=crop&amp;w=1200&amp;q=85" alt="Interior elegante de um restaurante contemporâneo" loading="lazy" decoding="async" /><div class="work-image-shade"></div><div class="food-header"><b>CASA AMORA</b><span>MENU & MOMENTS</span></div><div class="food-title">Feito com<br><i>tempo.</i></div><div class="food-footer">COZINHA DE AUTOR · DESDE 2020</div></div><div class="work-caption"><div><span>CONCEITO · RESTAURAÇÃO</span><h3>Casa Amora</h3></div><span class="work-arrow">↗</span></div></article>
+              <article class="work-card"><div class="work-preview preview-tech"><img class="work-image" src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&amp;fit=crop&amp;w=1200&amp;q=85" alt="Computador com painel de análise de dados empresariais" loading="lazy" decoding="async" /><div class="work-image-shade"></div><div class="tech-sidebar">NOVA<span>STUDIO</span><small>OVERVIEW<br>PROJECTS<br>INSIGHTS</small></div><div class="tech-main"><span>YOUR BUSINESS, IN FOCUS</span><h3>Clarity in<br>every move.</h3><div class="tech-chart"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><small>PERFORMANCE / 2026</small></div></div><div class="work-caption"><div><span>CONCEITO · SISTEMA EMPRESARIAL</span><h3>Nova Studio</h3></div><span class="work-arrow">↗</span></div></article>
             </div>
             <p class="demo-disclaimer">${icon("info", 14)} Projetos conceptuais de demonstração — não representam trabalhos de clientes reais.</p>
           </div>
@@ -118,6 +141,7 @@ function renderHome(): void {
       <footer class="site-footer"><div class="section-wrap footer-inner"><a class="brand" href="#/"><span class="brand-mark">K</span><span class="brand-name">KORA<span>AI</span></span></a><span>ESTRATÉGIA · DESIGN · TECNOLOGIA</span><a href="#/login" class="footer-team">Área da equipa ${icon("arrow-up-right", 13)}</a><small>© 2026 KORA AI. Todos os direitos reservados.</small></div></footer>
     </div>`;
   refreshIcons();
+  initHomeMotion();
 }
 
 function escapeHtml(value: unknown): string {
